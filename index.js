@@ -10,11 +10,7 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors({
-  origin: 'http://localhost:4000', // Adjust if necessary for your frontend origin
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(cors({));
 
 app.use(express.json()); // Built-in middleware to parse JSON bodies
 
