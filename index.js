@@ -12,8 +12,14 @@ connectDB();
 
 // Middleware
 app.use(bodyParser.json());
-app.use(cors());
-app.use(express.json());
+// CORS configuration
+const corsOptions = {
+    origin: 'http://localhost:5000', // Replace with your React app URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  };
+  app.use(cors(corsOptions));
+  app.use(express.json());
 
 // Routes
 app.use('/api/users', userRoutes); // Add the user routes to your server
