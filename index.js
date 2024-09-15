@@ -10,7 +10,7 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors({));
+app.use(cors());
 
 app.use(express.json()); // Built-in middleware to parse JSON bodies
 
