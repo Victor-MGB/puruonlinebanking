@@ -14,7 +14,7 @@ connectDB();
 app.use(bodyParser.json());
 // CORS configuration
 const corsOptions = {
-    origin: 'http://localhost:5000', // Replace with your React app URL
+    origin: 'http://localhost:4000', // Replace with your React app URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
   };
@@ -36,5 +36,5 @@ app.use((req, res, next) => {
   });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
