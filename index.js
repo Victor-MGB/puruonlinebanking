@@ -15,7 +15,7 @@ app.use(bodyParser.json());
 // CORS configuration
 app.use(cors());
 
-  app.use(express.json());
+app.use(express.json());
 
 // Routes
 app.use('/api/users', userRoutes); // Add the user routes to your server
