@@ -1,8 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const bodyParser = require("body-parser");
-const userRoutes = require('./routes/userRoutes'); // Uncomment and ensure the path is correct
+const userRoutes = require('./routes/userRoutes'); // Ensure this path is correct
 require('dotenv').config();
 
 const app = express();
@@ -11,25 +10,28 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(bodyParser.json());
-// CORS configuration
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:4000', // Adjust if necessary for your frontend origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-app.use(express.json());
+app.use(express.json()); // Built-in middleware to parse JSON bodies
+
+// Logging middleware (should be placed before route handlers)
+app.use((req, res, next) => {
+  console.log(`Request URL: ${req.url}, Request Method: ${req.method}`);
+  next();
+});
 
 // Routes
 app.use('/api/users', userRoutes); // Add the user routes to your server
 
-app.use((req, res, next) => {
-    console.log(`Request URL: ${req.url}, Request Method: ${req.method}`);
-    next();
-  });
-  
-  // Error handling middleware
-  app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Internal Server Error' });
-  });
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Internal Server Error' });
+});
 
 // Start server
 const PORT = process.env.PORT || 4000;
