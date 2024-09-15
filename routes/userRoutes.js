@@ -20,7 +20,7 @@ const generateAccountNumber = async () => {
   return accountNumber;
 };
 
-// Route for user registration
+// Registration route
 router.post(
   '/register',
   [
@@ -29,16 +29,25 @@ router.post(
     check('lastName').notEmpty().withMessage('Last name is required'),
     check('email').isEmail().withMessage('Please provide a valid email'),
     check('phoneNumber').notEmpty().withMessage('Phone number is required'),
-    check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-    check('confirmPassword').custom((value, { req }) => value === req.body.password).withMessage('Passwords do not match'),
+    check('password')
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters long'),
+    check('confirmPassword')
+      .custom((value, { req }) => value === req.body.password)
+      .withMessage('Passwords do not match'),
     check('dateOfBirth').isDate().withMessage('Please provide a valid date of birth'),
+    check('accountPin')
+      .isLength({ min: 4, max: 4 })
+      .withMessage('Account PIN must be exactly 4 digits')
   ],
   async (req, res) => {
+    // Validate request body
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
+    // Destructure user input
     const {
       firstName,
       middleName,
@@ -54,7 +63,7 @@ router.post(
       country,
       currency,
       password,
-      accountPin,
+      accountPin
     } = req.body;
 
     try {
@@ -65,7 +74,11 @@ router.post(
       }
 
       // Generate OTP
-      const otp = otpGenerator.generate(6, { upperCase: false, specialChars: false, alphabets: false });
+      const otp = otpGenerator.generate(6, {
+        upperCase: false,
+        specialChars: false,
+        alphabets: false,
+      });
       const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
 
       // Hash password and account pin
@@ -82,10 +95,10 @@ router.post(
         type: accountType,
         balance: 0,
         currency,
-        transactions: [],
+        transactions: []
       };
 
-      // Create a new user instance
+      // Create new user instance
       const user = new User({
         firstName,
         middleName,
@@ -102,20 +115,20 @@ router.post(
         currency,
         password: hashedPassword,
         accountPin: hashedAccountPin,
-        agree: true,
+        agree: true, // Assuming the user has agreed to terms
         kycStatus: 'pending',
         otp,
         otpExpires,
-        accounts: [account], // Add the account object to the user
-        withdrawals: [], // Initialize withdrawals as empty
-        loans: [], // Initialize loans as empty
-        loanRepayments: [], // Initialize loan repayments as empty
+        accounts: [account], // Add the account to the user
+        withdrawals: [], // Initialize withdrawals
+        loans: [], // Initialize loans
+        loanRepayments: [] // Initialize loan repayments
       });
 
       // Save the user to the database
       await user.save();
 
-      // Email content
+      // Send OTP email
       const emailSubject = 'OTP for Account Registration';
       const emailText = `Dear ${firstName},
 
@@ -140,11 +153,10 @@ The Central City Bank Team`;
 <p>Thank you for choosing Central City Bank for your banking needs.</p>
 <p>The Central City Bank Team</p>`;
 
-      // Send email with OTP
       await sendEmail(email, emailSubject, emailText, emailHtml);
 
-      // Respond with success message and user details
-      res.status(201).json({
+      // Respond with success
+      return res.status(201).json({
         message: 'User registered successfully',
         user: {
           firstName,
@@ -170,10 +182,11 @@ The Central City Bank Team`;
       });
     } catch (error) {
       console.error('Error during registration:', error.message);
-      res.status(500).json({ message: 'Server error. Please try again later.' });
+      return res.status(500).json({ message: 'Server error. Please try again later.' });
     }
   }
 );
+
 
 router.get("/", (req, res) => {
   res.send("hello world");
