@@ -40,13 +40,11 @@ router.post(
     .withMessage('Account PIN must be exactly 4 digits')
 ],
 async (req, res) => {
-  // Validate request body
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  // Destructure user input
   const {
     firstName,
     lastName,
@@ -65,24 +63,19 @@ async (req, res) => {
   } = req.body;
 
   try {
-    // Check if the user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Generate OTP
     const otp = otpGenerator.generate(6, { upperCase: false, specialChars: false, alphabets: false });
-    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-    // Hash password and account pin
     const hashedPassword = await bcrypt.hash(password, 10);
     const hashedAccountPin = await bcrypt.hash(accountPin, 10);
 
-    // Generate unique account number
     const accountNumber = await generateAccountNumber();
 
-    // Create new user instance
     const user = new User({
       firstName,
       lastName,
@@ -110,17 +103,14 @@ async (req, res) => {
       },
     });
 
-    // Save the user to the database
     await user.save();
 
-    // Send OTP email
     const emailSubject = 'OTP for Account Registration';
-    const emailText = `Dear ${firstName},\n\nPlease find below your One-Time Password (OTP) required for account registration:\n\nOTP: ${otp}\n\nThis OTP is valid for 5 minutes.`;
-    const emailHtml = `<p>Dear ${firstName},</p><p>Please find below your One-Time Password (OTP) required for account registration:</p><p><strong>OTP: ${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>`;
+    const emailText = `Dear ${firstName},\n\nPlease find below your OTP: ${otp}\n\nThis OTP is valid for 5 minutes.`;
+    const emailHtml = `<p>Dear ${firstName},</p><p>Your OTP: <strong>${otp}</strong></p><p>Valid for 5 minutes.</p>`;
 
     await sendEmail(email, emailSubject, emailText, emailHtml);
 
-    // Respond with success
     return res.status(201).json({
       message: 'User registered successfully',
       user: {
@@ -140,7 +130,7 @@ async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error during registration:', error);
+    console.error('Error during registration:', error); // Log detailed error
     return res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 }
