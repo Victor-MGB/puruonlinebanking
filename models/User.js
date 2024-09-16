@@ -5,14 +5,15 @@ const { Schema } = mongoose;
 const accountSchema = new Schema({
   accountId: { type: mongoose.Types.ObjectId, required: true },
   accountNumber: { type: String, required: true },
-  type: { type: String, required: true }, // E.g., 'savings' or 'current'
+  type: { type: String, required: true }, // E.g., 'savings', 'current'
   balance: { type: Number, default: 0 },
   currency: { type: String, required: true }, // E.g., 'USD', 'EUR'
   transactions: [
     {
+      _id: false, // Disable MongoDB's auto _id in subdocuments
       transactionId: { type: mongoose.Types.ObjectId, required: true },
       date: { type: Date, required: true },
-      type: { type: String, required: true }, // E.g., 'credit' or 'debit'
+      type: { type: String, required: true }, // E.g., 'credit', 'debit'
       amount: { type: Number, required: true },
       currency: { type: String, required: true },
       description: { type: String, required: true },
@@ -39,6 +40,7 @@ const withdrawalSchema = new Schema({
   },
   stages: [
     {
+      _id: false, // Disable MongoDB's auto _id in subdocuments
       name: {
         type: String,
         enum: [
@@ -112,7 +114,7 @@ const userSchema = new Schema({
   phoneNumber: { type: String, required: true },
   gender: { type: String, required: true }, // E.g., 'Male', 'Female'
   dateOfBirth: { type: Date, required: true },
-  accountType: { type: String, required: true }, // E.g., 'savings' or 'current'
+  accountType: { type: String, required: true }, // E.g., 'savings', 'current'
   address: { type: String, required: true },
   postalCode: { type: String, required: true },
   state: { type: String, required: true },
@@ -129,6 +131,7 @@ const userSchema = new Schema({
   loanRepayments: [loanRepaymentSchema],
   notifications: [
     {
+      _id: false,
       notificationId: {
         type: mongoose.Types.ObjectId,
         default: () => new mongoose.Types.ObjectId(),

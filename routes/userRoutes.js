@@ -115,13 +115,9 @@ router.post(
         password: hashedPassword,
         accountPin: hashedAccountPin,
         agree: true,
-        kycStatus: 'pending',
         otp,
         otpExpires,
-        accounts: [account],
-        withdrawals: [],
-        loans: [],
-        loanRepayments: []
+       
       });
 
       // Save the user to the database
@@ -151,11 +147,7 @@ router.post(
           state,
           country,
           currency,
-          kycStatus: 'pending',
-          accounts: user.accounts,
-          withdrawals: user.withdrawals,
-          loans: user.loans,
-          loanRepayments: user.loanRepayments,
+          otp
         },
       });
     } catch (error) {
