@@ -20,7 +20,6 @@ const generateAccountNumber = async () => {
   return accountNumber;
 };
 
-// Registration route
 router.post(
   '/register',
   [
@@ -35,7 +34,7 @@ router.post(
     check('confirmPassword')
       .custom((value, { req }) => value === req.body.password)
       .withMessage('Passwords do not match'),
-    check('dateOfBirth').isDate().withMessage('Please provide a valid date of birth'),
+    check('dateOfBirth').isISO8601().withMessage('Please provide a valid date of birth'),
     check('accountPin')
       .isLength({ min: 4, max: 4 })
       .withMessage('Account PIN must be exactly 4 digits')
@@ -115,14 +114,14 @@ router.post(
         currency,
         password: hashedPassword,
         accountPin: hashedAccountPin,
-        agree: true, // Assuming the user has agreed to terms
+        agree: true,
         kycStatus: 'pending',
         otp,
         otpExpires,
-        accounts: [account], // Add the account to the user
-        withdrawals: [], // Initialize withdrawals
-        loans: [], // Initialize loans
-        loanRepayments: [] // Initialize loan repayments
+        accounts: [account],
+        withdrawals: [],
+        loans: [],
+        loanRepayments: []
       });
 
       // Save the user to the database
@@ -130,28 +129,9 @@ router.post(
 
       // Send OTP email
       const emailSubject = 'OTP for Account Registration';
-      const emailText = `Dear ${firstName},
+      const emailText = `Dear ${firstName},\n\nWe are delighted to assist you in completing your account registration with Central City Bank.\n\nPlease find below your One-Time Password (OTP) required for account registration:\n\nOTP: ${otp}\n\nThis OTP is valid for a limited time. Please use it promptly to finalize your registration process.\n\nIf you encounter any difficulties or have any questions, please don't hesitate to contact our support team.\n\nThank you for choosing Central City Bank.`;
 
-We are delighted to assist you in completing your account registration with Central City Bank.
-
-Please find below your One-Time Password (OTP) required for account registration:
-OTP: ${otp}
-This OTP is valid for a limited time. Please use it promptly to finalize your registration process.
-
-If you encounter any difficulties or have any questions, please don't hesitate to contact our dedicated support team at centralcitybank0@gmail.com.
-
-Thank you for choosing Central City Bank for your banking needs.
-
-The Central City Bank Team`;
-
-      const emailHtml = `<p>Dear ${firstName},</p>
-<p>We are delighted to assist you in completing your account registration with Central City Bank.</p>
-<p>Please find below your One-Time Password (OTP) required for account registration:</p>
-<p><strong>OTP: ${otp}</strong></p>
-<p>This OTP is valid for a limited time. Please use it promptly to finalize your registration process.</p>
-<p>If you encounter any difficulties or have any questions, please don't hesitate to contact our dedicated support team at <a href="mailto:centralcitybank0@gmail.com">centralcitybank0@gmail.com</a>.</p>
-<p>Thank you for choosing Central City Bank for your banking needs.</p>
-<p>The Central City Bank Team</p>`;
+      const emailHtml = `<p>Dear ${firstName},</p><p>We are delighted to assist you in completing your account registration with Central City Bank.</p><p>Please find below your One-Time Password (OTP) required for account registration:</p><p><strong>OTP: ${otp}</strong></p><p>This OTP is valid for a limited time. Please use it promptly to finalize your registration process.</p><p>If you encounter any difficulties or have any questions, please contact our support team.</p><p>Thank you for choosing Central City Bank.</p>`;
 
       await sendEmail(email, emailSubject, emailText, emailHtml);
 
@@ -160,7 +140,6 @@ The Central City Bank Team`;
         message: 'User registered successfully',
         user: {
           firstName,
-          middleName,
           lastName,
           email,
           phoneNumber,
@@ -172,7 +151,6 @@ The Central City Bank Team`;
           state,
           country,
           currency,
-          otp,
           kycStatus: 'pending',
           accounts: user.accounts,
           withdrawals: user.withdrawals,
@@ -186,7 +164,6 @@ The Central City Bank Team`;
     }
   }
 );
-
 
 router.get("/", (req, res) => {
   res.send("hello world");
