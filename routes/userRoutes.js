@@ -22,34 +22,69 @@ const generateAccountNumber = async () => {
 
 router.post(
   '/register',
-  [
-    // Validation rules
-    check('firstName').notEmpty().withMessage('First name is required'),
-    check('lastName').notEmpty().withMessage('Last name is required'),
-    check('email').isEmail().withMessage('Please provide a valid email'),
-    check('phoneNumber').notEmpty().withMessage('Phone number is required'),
-    check('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters long'),
-    check('confirmPassword')
-      .custom((value, { req }) => value === req.body.password)
-      .withMessage('Passwords do not match'),
-    check('dateOfBirth').isISO8601().withMessage('Please provide a valid date of birth'),
-    check('accountPin')
-      .isLength({ min: 4, max: 4 })
-      .withMessage('Account PIN must be exactly 4 digits')
-  ],
-  async (req, res) => {
-    // Validate request body
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+[
+  // Validation rules
+  check('firstName').notEmpty().withMessage('First name is required'),
+  check('lastName').notEmpty().withMessage('Last name is required'),
+  check('email').isEmail().withMessage('Please provide a valid email'),
+  check('phoneNumber').notEmpty().withMessage('Phone number is required'),
+  check('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long'),
+  check('confirmPassword')
+    .custom((value, { req }) => value === req.body.password)
+    .withMessage('Passwords do not match'),
+  check('dateOfBirth').isISO8601().withMessage('Please provide a valid date of birth'),
+  check('accountPin')
+    .isLength({ min: 4, max: 4 })
+    .withMessage('Account PIN must be exactly 4 digits')
+],
+async (req, res) => {
+  // Validate request body
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  // Destructure user input
+  const {
+    firstName,
+    lastName,
+    email,
+    phoneNumber,
+    gender,
+    dateOfBirth,
+    accountType,
+    address,
+    postalCode,
+    state,
+    country,
+    currency,
+    password,
+    accountPin,
+  } = req.body;
+
+  try {
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Destructure user input
-    const {
+    // Generate OTP
+    const otp = otpGenerator.generate(6, { upperCase: false, specialChars: false, alphabets: false });
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
+
+    // Hash password and account pin
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedAccountPin = await bcrypt.hash(accountPin, 10);
+
+    // Generate unique account number
+    const accountNumber = await generateAccountNumber();
+
+    // Create new user instance
+    const user = new User({
       firstName,
-      middleName,
       lastName,
       email,
       phoneNumber,
@@ -61,46 +96,35 @@ router.post(
       state,
       country,
       currency,
-      password,
-      accountPin
-    } = req.body;
-
-    try {
-      // Check if the user already exists
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({ message: 'User already exists' });
-      }
-
-      // Generate OTP
-      const otp = otpGenerator.generate(6, {
-        upperCase: false,
-        specialChars: false,
-        alphabets: false,
-      });
-      const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
-
-      // Hash password and account pin
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const hashedAccountPin = await bcrypt.hash(accountPin, 10);
-
-      // Generate unique account number
-      const accountNumber = await generateAccountNumber();
-
-      // Create account object
-      const account = {
+      password: hashedPassword,
+      accountPin: hashedAccountPin,
+      otp,
+      otpExpires,
+      account: {
         accountId: new mongoose.Types.ObjectId(),
         accountNumber,
         type: accountType,
         balance: 0,
         currency,
-        transactions: []
-      };
+        transactions: [],
+      },
+    });
 
-      // Create new user instance
-      const user = new User({
+    // Save the user to the database
+    await user.save();
+
+    // Send OTP email
+    const emailSubject = 'OTP for Account Registration';
+    const emailText = `Dear ${firstName},\n\nPlease find below your One-Time Password (OTP) required for account registration:\n\nOTP: ${otp}\n\nThis OTP is valid for 5 minutes.`;
+    const emailHtml = `<p>Dear ${firstName},</p><p>Please find below your One-Time Password (OTP) required for account registration:</p><p><strong>OTP: ${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>`;
+
+    await sendEmail(email, emailSubject, emailText, emailHtml);
+
+    // Respond with success
+    return res.status(201).json({
+      message: 'User registered successfully',
+      user: {
         firstName,
-        middleName,
         lastName,
         email,
         phoneNumber,
@@ -112,48 +136,14 @@ router.post(
         state,
         country,
         currency,
-        password: hashedPassword,
-        accountPin: hashedAccountPin,
-        agree: true,
-        otp,
-        otpExpires,
-        account
-      });
-
-      // Save the user to the database
-      await user.save();
-
-      // Send OTP email
-      const emailSubject = 'OTP for Account Registration';
-      const emailText = `Dear ${firstName},\n\nWe are delighted to assist you in completing your account registration with Central City Bank.\n\nPlease find below your One-Time Password (OTP) required for account registration:\n\nOTP: ${otp}\n\nThis OTP is valid for a limited time. Please use it promptly to finalize your registration process.\n\nIf you encounter any difficulties or have any questions, please don't hesitate to contact our support team.\n\nThank you for choosing Central City Bank.`;
-      const emailHtml = `<p>Dear ${firstName},</p><p>We are delighted to assist you in completing your account registration with Central City Bank.</p><p>Please find below your One-Time Password (OTP) required for account registration:</p><p><strong>OTP: ${otp}</strong></p><p>This OTP is valid for a limited time. Please use it promptly to finalize your registration process.</p><p>If you encounter any difficulties or have any questions, please contact our support team.</p><p>Thank you for choosing Central City Bank.</p>`;
-
-      await sendEmail(email, emailSubject, emailText, emailHtml);
-
-      // Respond with success
-      return res.status(201).json({
-        message: 'User registered successfully',
-        user: {
-          firstName,
-          lastName,
-          email,
-          phoneNumber,
-          gender,
-          dateOfBirth,
-          accountType,
-          address,
-          postalCode,
-          state,
-          country,
-          currency,
-          accountNumber
-        }
-      });
-    } catch (error) {
-      console.error('Error during registration:', error);
-      return res.status(500).json({ message: 'Server error. Please try again later.' });
-    }
+        accountNumber,
+      },
+    });
+  } catch (error) {
+    console.error('Error during registration:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
   }
+}
 );
 
 router.get("/", (req, res) => {
